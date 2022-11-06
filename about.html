@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+    <head>
+        <meta charset="utf-8">
+        <title>关于此软件</title>
+        <style media="screen">
+            /* https://pigment.shapefactory.co/?a=E3D8C8&b=6B6358 */
+            :root {
+                --color-bg: #E3D8C8;
+                --color-fg: #5B534A;
+                --color-bg-light: #F9F0E1;
+                --color-bg-dark: #C2B5A3;
+                --color-fg-light: #6B6358;
+                --color-fg-lighter: #80786C;
+                --color-fg-dark: #4C443B;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_35_Thin_35_Thin.ttf");
+                font-weight: 100;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_45_Light_45_Light.ttf");
+                font-weight: 200;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_55_Regular_55_Regular.ttf");
+                font-weight: 300;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_55_Regular_85_Bold.ttf");
+                font-weight: 400;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_65_Medium_65_Medium.ttf");
+                font-weight: 500;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_75_SemiBold_75_SemiBold.ttf");
+                font-weight: 600;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_95_ExtraBold_95_ExtraBold.ttf");
+                font-weight: 700;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_105_Heavy_105_Heavy.ttf");
+                font-weight: 800;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_115_Black_115_Black.ttf");
+                font-weight: 900;
+            }
+            @keyframes twinkle {
+                0% {
+                    filter: brightness(0.75) blur(0px);
+                    transform: scaleX(1) scaleY(1) translateY(0px);
+                }
+                100% {
+                    filter: brightness(1.25) blur(1px);
+                    transform: scaleX(0.93) scaleY(0.97) translateY(1.5px);
+                }
+            }
+            * {
+                font-family: "Alibaba PuHuiTi";
+                font-size: 16px;
+                color: var(--color-fg);
+                user-select: none;
+                margin: 0px;
+                padding: 0px;
+            }
+            body {
+                background-color: var(--color-bg-light);
+                text-align: center;
+            }
+            p {
+                margin: 5px;
+            }
+            .head {
+                font-weight: 700;
+                font-size: 20px;
+                margin-top: 15px;
+                padding-bottom: 15px;
+                position: relative;
+            }
+            .head::after {
+                content: "";
+                border-bottom: 2px solid var(--color-fg-lighter);
+                position: absolute;
+                bottom: 0px;
+                display: block;
+                left: 50%;
+                width: 50%;
+                transform: translateX(-50%);
+            }
+            p > span {
+                user-select: text;
+            }
+            a {
+                display: inline-block;
+                text-decoration: none;
+                animation-name: twinkle;
+                animation-duration: 1.9s;
+                animation-direction: alternate;
+                animation-iteration-count: infinite;
+                animation-timing-function: cubic-bezier(0.5, 0, 0.5, 1);
+                transition-duration: 0.3s;
+                height: 20px;
+                line-height: 20px;
+                -webkit-user-drag: none;
+            }
+            a:hover {
+                font-size: 18px;
+            }
+        </style>
+    </head>
+    <body>
+        <!--实在是懒得做样式了！有愿意贡献的朋友可以联系我， cptcoder@foxmail.com -->
+        <p class="head">作者：CPTCoder(Rev_Aria)</p>
+        <p><a data-href="https://bbs.mihoyo.com/ys/accountCenter/postList?id=332206713" href="javascript:void(0);">米游社主页</a></p>
+        <p><a data-href="https://space.bilibili.com/174414289" href="javascript:void(0);">Bilibili主页</a></p>
+        <p>邮箱：<span>CPTcoder@foxmail.com</span></p>
+        <p class="head"></p>
+        <p class="head">本软件使用Electron框架，已开源</p>
+        <p><a data-href="https://github.com/CPTProgrammer/Webstatic-Helper/" href="javascript:void(0);">GitHub仓库地址</a></p>
+        <p>其中 w1.js 文件版权归 miHoYo 所有，不属于本人！仅做学习研究的修改！</p>
+        <script type="text/javascript">
+            const {ipcRenderer} = require("electron");
+            window.addEventListener("load", function (){
+                //给所有a标签添加事件
+                document.querySelectorAll("a").forEach(function (ele){
+                    if (ele.dataset.href){
+                        ele.addEventListener("click", function (){
+                            ipcRenderer.send("OPEN_WEBPAGE", ele.dataset.href);
+                        });
+                    }
+                });
+            });
+        </script>
+    </body>
+</html>

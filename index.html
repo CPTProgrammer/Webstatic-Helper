@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+    <head>
+        <meta charset="utf-8">
+        <title>设置</title>
+        <style media="screen">
+            /* https://pigment.shapefactory.co/?a=E3D8C8&b=6B6358 */
+            :root {
+                --color-bg: #E3D8C8;
+                --color-fg: #5B534A;
+                --color-bg-light: #F9F0E1;
+                --color-bg-dark: #C2B5A3;
+                --color-fg-light: #6B6358;
+                --color-fg-lighter: #80786C;
+                --color-fg-dark: #4C443B;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_35_Thin_35_Thin.ttf");
+                font-weight: 100;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_45_Light_45_Light.ttf");
+                font-weight: 200;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_55_Regular_55_Regular.ttf");
+                font-weight: 300;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_55_Regular_85_Bold.ttf");
+                font-weight: 400;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_65_Medium_65_Medium.ttf");
+                font-weight: 500;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_75_SemiBold_75_SemiBold.ttf");
+                font-weight: 600;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_95_ExtraBold_95_ExtraBold.ttf");
+                font-weight: 700;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_105_Heavy_105_Heavy.ttf");
+                font-weight: 800;
+            }
+            @font-face {
+                font-family: "Alibaba PuHuiTi";
+                src: url("./fonts/Alibaba_PuHuiTi_2.0_115_Black_115_Black.ttf");
+                font-weight: 900;
+            }
+            * {
+                font-family: "Alibaba PuHuiTi";
+                font-size: 16px;
+                color: var(--color-fg);
+                user-select: none;
+                margin: 0px;
+                padding: 0px;
+            }
+            body {
+                background-color: var(--color-bg-light);
+            }
+            select {
+                outline: none;
+                border-radius: 5px;
+                border: none;
+                background-color: white;
+                transition-duration: 0.3s;
+                transition-property: background-color color font-weight;
+                padding: 3px;
+            }
+            select:hover {
+                background-color: var(--color-bg);
+            }
+            select:active {
+                background-color: var(--color-bg-dark);
+                color: var(--color-fg-dark);
+                /*font-weight: 600; 会卡顿*/
+            }
+            select:focus {
+                background-color: var(--color-bg-dark);
+                color: var(--color-fg-dark);
+                /*font-weight: 600;*/
+                border-radius: 5px 5px 0px 0px;
+            }
+            .form-list {
+                margin: 8px;
+            }
+            input[type="range"] + span {
+                margin-left: 5px;
+                width: 20px;
+                display: inline-block;
+            }
+            .form-list {
+                text-align: center
+            }
+            .form-list > p {
+                font-size: 12px;
+                color: var(--color-fg-lighter);
+                margin: 0px;
+            }
+            input[type="submit"], input[type="button"] {
+                background-color: white;
+                border: none;
+                outline: none;
+                transition-duration: 0.3s;
+                border-radius: 5px;
+                padding: 4px 12px;
+                margin-left: 11px;
+                margin-right: 11px;
+                font-size: 17px;
+            }
+            input[type="submit"] {
+                background-color: var(--color-fg-light);
+                color: var(--color-bg);
+            }
+            input[type="button"] {
+                background-color: white;
+            }
+            input[type="button"]:hover {
+                background-color: var(--color-bg);
+            }
+            input[type="button"]:active {
+                background-color: var(--color-bg-dark);
+                color: var(--color-fg-dark);
+            }
+            input[type="submit"]:hover {
+                background-color: var(--color-fg);
+                color: var(--color-bg-light);
+            }
+            input[type="submit"]:active {
+                background-color: var(--color-fg-dark);
+                color: white;
+            }
+            .form-submit {
+                position: absolute;
+                bottom: 0px;
+                padding-bottom: 15px;
+                display: flex;
+                justify-content: center;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <!--实在是懒得做样式了！有愿意贡献的朋友可以联系我， cptcoder@foxmail.com -->
+        <form id="settings-form" action="#">
+            <div class="form-list">
+                控制方式：<select name="control_type">
+                    <option value="0">鼠标侧边按钮控制（按钮5）（不建议使用）</option>
+                    <option value="1">Alt键控制</option>
+                </select>
+            </div>
+            <div class="form-list">
+                显示方式：<select name="moving_type">
+                    <option value="0">移动地图（准心不动）</option>
+                    <option value="1">移动准心（地图不动）</option>
+                </select>
+            </div>
+            <div class="form-list">
+                是否隐藏已标记的标点：<select name="hide_marked">
+                    <option value="1">是</option>
+                    <option value="0">否</option>
+                </select>
+                <p>我不是很理解这功能官方不加是为啥，官方不加我来加</p>
+            </div>
+            <div class="form-list">
+                标记标点快捷键：<select name="mark_shortcut">
+                    <option value="41">键盘左上角的 ~ ` 键</option>
+                    <option value="29">Ctrl</option>
+                </select>
+            </div>
+            <div class="form-list">
+                灵敏度：<input type="range" name="sensitivity" value="10" min="1" max="30" data-zoom="10"><span></span>
+            </div>
+            <div class="form-list">
+                标点图标缩放：<input type="range" name="icon_scale" value="10" min="5" max="20" data-zoom="10"><span></span>
+                <p>Ctrl+R刷新页面或下次启动时生效</p>
+            </div>
+            <div class="form-list">
+                地图移动刷新率：<input type="range" name="control_fps" value="60" min="5" max="240" data-zoom="1"><span></span>
+                <p>仅在显示方式为移动地图时生效，建议不要太高，60左右即可，否则可能会更卡顿</p>
+            </div>
+            <div class="form-submit">
+                <input type="submit" data-type="submit" value="保存">
+                <input type="button" id="btn-cancel" data-type="common" value="关闭" onclick="if(confirm('确认关闭设置')){window.close();}">
+                <input type="button" id="btn-reset" data-type="common" value="恢复默认设置" onclick="resetSettings();">
+            </div>
+        </form>
+        <script type="text/javascript">
+            const {ipcRenderer} = require("electron");
+            //获取设置数据
+            //var settingsData = ipcRenderer.sendSync("GET_SETTINGS"); 此方法有问题
+            ipcRenderer.on("GET_SETTINGS_REPLY", function (event, data){
+                settingsData = data;
+
+                //alert(document.readyState);
+                if (document.readyState == "interactive"){
+                    init();
+                }else {
+                    window.addEventListener("ready", init);
+                }
+            });
+
+            ipcRenderer.on("RESET_SETTINGS_REPLY", function (event, reply, data){
+                if (reply == "FAILED"){
+                    alert("重置失败，请联系作者修复！");
+                }else if (reply == "SUCCESS"){
+                    settingsData = data;
+                    initData();
+                    alert("重置成功");
+                }else {
+                    alert("出现不明问题，不一定影响使用\n返回值：" + reply);
+                }
+            });
+
+            ipcRenderer.on("SAVE_SETTINGS_REPLY", function (event, reply){
+                if (reply == "FAILED"){
+                    alert("保存失败，请联系作者修复！");
+                }else if (reply == "SUCCESS"){
+                    alert("保存成功");
+                }else {
+                    alert("出现不明问题，不一定影响使用\n返回值：" + reply);
+                }
+            });
+
+            ipcRenderer.send("GET_SETTINGS");
+            //console.log(settingsData);
+
+            function resetSettings(){
+                /*
+                var verificationCode = ("xxxx").split("");
+                for (let c in verificationCode){
+                    //一个不太好的写法
+                    verificationCode[c] = Math.random() >= (52 / 62) ? parseInt(Math.random() * 10).toString() : (Math.random() >= 0.5 ? String.fromCharCode(parseInt(Math.random() * 26) + ("a").charCodeAt()) : String.fromCharCode(parseInt(Math.random() * 26) + ("A").charCodeAt()));
+                    //alert(verificationCode[c]);
+                }
+                verificationCode = verificationCode.join("");
+                //alert(verificationCode);
+                //Electron居然不支持prompt，好奇怪，不写这么复杂了
+                */
+
+                if (confirm("确认是否恢复默认设置")){
+                    ipcRenderer.send("RESET_SETTINGS");
+                }
+            }
+
+            function init(){
+                //alert(1);
+                initData();
+
+                //处理每个拖动条的数据显示
+                var allRangeEle = document.querySelectorAll("input[type='range']");
+                allRangeEle.forEach(function (ele){
+                    updateView(ele);
+                    ele.addEventListener("input", function (){
+                        updateView(this);
+                    });
+                });
+
+                //处理提交事件
+                document.getElementById("settings-form").addEventListener("submit", function (e){
+                    let data = {};
+                    for (let i = 0; e.srcElement[i]; i++){
+                        //console.log(e.srcElement[i]);
+                        if (e.srcElement[i].name){
+                            data[e.srcElement[i].name] = parseInt(e.srcElement[i].value) / (e.srcElement[i].dataset.zoom ? e.srcElement[i].dataset.zoom : 1);
+                        }
+                    }
+                    console.log(JSON.stringify(data));
+                    ipcRenderer.send("SAVE_SETTINGS", data);
+                    e.preventDefault();
+                    return false;
+                });
+            }
+
+            function initData(){
+                //初始化设置界面
+                //alert(document.querySelectorAll("#settings-form select"));
+                document.querySelectorAll("#settings-form select").forEach(function (ele){
+                    if (ele.name){
+                        //console.log(ele);
+                        ele.value = settingsData[ele.name];
+                    }
+                });
+                document.querySelectorAll("#settings-form input").forEach(function (ele){
+                    if (ele.type == "submit" || ele.type == "button"){
+                        return;
+                    }
+                    if (ele.name){
+                        ele.value = settingsData[ele.name] * ele.dataset.zoom;
+                        if (ele.type == "range"){
+                            updateView(ele);
+                        }
+                    }
+                });
+            }
+
+            //更新range后span显示的函数
+            function updateView(ele){
+                ele.dataset._temp = "true";
+                document.querySelector("input[data-_temp='true'] + span").innerHTML = ele.value / ele.dataset.zoom;
+                ele.dataset._temp = undefined;
+            }
+        </script>
+    </body>
+</html>
