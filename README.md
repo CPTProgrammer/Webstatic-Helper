@@ -45,6 +45,10 @@
 
 ![image](https://user-images.githubusercontent.com/46586216/200829152-f0514679-ea93-4f74-b9f2-e3de265f1c64.png)
 
+悬浮模式：
+
+![image](https://user-images.githubusercontent.com/46586216/204087979-516d6013-bc20-40a1-9224-034dd97b1f2c.png)
+
 动图（图为隐藏已标记标点的演示）：
 
 ![隐藏已标记标点 00_00_00-00_00_30~2](https://user-images.githubusercontent.com/46586216/200830465-45f29435-0e56-4827-b4c7-5228ee8af7e6.gif)
