@@ -104,10 +104,13 @@
             .form-list {
                 text-align: center
             }
-            .form-list > p {
+            .form-list > p, .form-list > p > b {
                 font-size: 12px;
                 color: var(--color-fg-lighter);
                 margin: 0px;
+            }
+            .form-list > p > b {
+                color: var(--color-fg);
             }
             input[type="submit"], input[type="button"] {
                 background-color: white;
@@ -146,50 +149,81 @@
                 position: absolute;
                 bottom: 0px;
                 padding-bottom: 15px;
+                padding-top: 15px;
                 display: flex;
                 justify-content: center;
                 width: 100%;
+                box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.3);
+            }
+
+            .form-lists {
+                max-height: calc(100vh - 62px);
+                overflow-x: hidden;
+                overflow-y: auto;
+            }
+            .form-lists::-webkit-scrollbar {
+                width: 7px;
+            }
+            .form-lists::-webkit-scrollbar-track {
+                background-color: rgba(0, 0, 0, 0);
+            }
+            .form-lists::-webkit-scrollbar-thumb {
+                border-radius: 3px;
+                background-color: var(--color-fg);
             }
         </style>
     </head>
     <body>
         <!--实在是懒得做样式了！有愿意贡献的朋友可以联系我， cptcoder@foxmail.com -->
         <form id="settings-form" action="#">
-            <div class="form-list">
-                控制方式：<select name="control_type">
-                    <option value="0">鼠标侧边按钮控制（按钮5）（推荐使用）</option>
-                    <option value="1">Alt键控制（似乎有bug）</option>
-                </select>
-            </div>
-            <div class="form-list">
-                显示方式：<select name="moving_type">
-                    <option value="0">移动地图（准心不动）</option>
-                    <option value="1">移动准心（地图不动）</option>
-                </select>
-            </div>
-            <div class="form-list">
-                是否隐藏已标记的标点：<select name="hide_marked">
-                    <option value="1">是</option>
-                    <option value="0">否</option>
-                </select>
-                <p>我不是很理解这功能官方不加是为啥，官方不加我来加</p>
-            </div>
-            <div class="form-list">
-                标记标点快捷键：<select name="mark_shortcut">
-                    <option value="41">键盘左上角的 ~ ` 键</option>
-                    <option value="29">Ctrl</option>
-                </select>
-            </div>
-            <div class="form-list">
-                灵敏度：<input type="range" name="sensitivity" value="10" min="1" max="30" data-zoom="10"><span></span>
-            </div>
-            <div class="form-list">
-                标点图标缩放：<input type="range" name="icon_scale" value="10" min="5" max="20" data-zoom="10"><span></span>
-                <p>Ctrl+R刷新页面或下次启动时生效</p>
-            </div>
-            <div class="form-list">
-                地图移动刷新率：<input type="range" name="control_fps" value="60" min="5" max="240" data-zoom="1"><span></span>
-                <p>仅在显示方式为移动地图时生效，建议不要太高，60左右即可，否则可能会更卡顿</p>
+            <div class="form-lists">
+                <div class="form-list">
+                    控制方式：<select name="control_type">
+                        <option value="0">鼠标侧边按钮控制（按钮5）（推荐使用）</option>
+                        <option value="1">Alt键控制（似乎有bug，原因暂不明）</option>
+                    </select>
+                    <p>使用鼠标侧键控制时建议调低鼠标回报率至125Hz，否则可能会出现准心乱飘的情况</p>
+                </div>
+                <div class="form-list">
+                    显示方式：<select name="moving_type">
+                        <option value="0">移动地图（准心不动）</option>
+                        <option value="1">移动准心（地图不动）（推荐）</option>
+                    </select>
+                </div>
+                <div class="form-list">
+                    是否隐藏已标记的标点：<select name="hide_marked">
+                        <option value="1">是</option>
+                        <option value="0">否</option>
+                    </select>
+                    <p>我不是很理解这功能官方不加是为啥，官方不加我来加</p>
+                </div>
+                <div class="form-list">
+                    标记标点快捷键：<select name="mark_shortcut">
+                        <option value="41">键盘左上角的 ~ ` 键</option>
+                        <option value="29">Ctrl</option>
+                    </select>
+                </div>
+                <div class="form-list">
+                    是否以无边框模式启动：<select name="frameless">
+                        <option value="1">是</option>
+                        <option value="0">否</option>
+                    </select>
+                    <p>需重启软件生效，顶部菜单栏改为<b>右键</b>，无法在软件内操控页面，仅能拖动窗口</p>
+                </div>
+                <div class="form-list">
+                    灵敏度：<input type="range" name="sensitivity" value="10" min="1" max="30" data-zoom="10"><span></span>
+                </div>
+                <div class="form-list">
+                    无边框模式透明度：<input type="range" name="floating_opacity" value="80" min="1" max="100" data-zoom="100"><span></span>
+                </div>
+                <div class="form-list">
+                    标点图标缩放：<input type="range" name="icon_scale" value="10" min="5" max="20" data-zoom="10"><span></span>
+                    <p>Ctrl+R刷新页面或下次启动时生效</p>
+                </div>
+                <div class="form-list">
+                    地图移动刷新率：<input type="range" name="control_fps" value="60" min="5" max="240" data-zoom="1"><span></span>
+                    <p>建议不要太高，60左右即可，否则可能会更卡顿</p>
+                </div>
             </div>
             <div class="form-submit">
                 <input type="submit" data-type="submit" value="保存">

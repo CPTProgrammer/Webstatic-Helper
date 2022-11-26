@@ -1,6 +1,6 @@
 //代码写的还是挺烂的
 
-const {app, BrowserWindow, protocol, Menu, dialog, ipcMain, shell} = require("electron");
+const {app, BrowserWindow, protocol, Menu, dialog, ipcMain, shell, screen} = require("electron");
 //导入监测鼠标事件的包（不明原因失败） https://www.npmjs.com/package/global-mouse-events
 //const mouseEvents = require("iohook");
 //导入监测鼠标事件的包 https://github.com/wilix-team/iohook
@@ -12,6 +12,8 @@ const url = require("url");
 const https = require('https');
 //const http = require('http');
 
+const WM_INITMENU = 0x0116;//右键事件代码
+
 const MOUSE_SIDE_BUTTON_CONTROL = 0;
 const ALT_CONTROL = 1;
 
@@ -19,6 +21,8 @@ var controlType = ALT_CONTROL;//控制方式
 
 const MAP_MOVING = 0;
 const POINTER_MOVING = 1;
+
+const CALIBRATION_RANGE = 2;//单位：px
 
 var movingType = MAP_MOVING;
 
@@ -36,6 +40,8 @@ var settingsData = undefined;
 
 var markShortcut = 41;
 
+var isFramelessWindow = false;
+
 //总感觉这样写不是很安全
 let mainWindow;
 
@@ -48,6 +54,8 @@ const createWindow = function (){
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 600,
+        frame: (settingsData.frameless == 1 ? false : true),
+        opacity: (settingsData.frameless == 1 ? settingsData.floating_opacity : 1),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -59,8 +67,17 @@ const createWindow = function (){
             label: "工具",
             submenu: [
                 {
+                    label: "折叠/打开左侧标点列表",
+                    click: function(){
+                        mainWindow.webContents.executeJavaScript(`if(document.getElementsByClassName("filter-panel__fold").length>0){document.getElementsByClassName("filter-panel__fold")[0].click();}`);
+                    }
+                },
+                {
+                    type: "separator"
+                },
+                {
                     label: "首选项",
-                    click() {
+                    click: function (){
                         const settingsWindow = new BrowserWindow({
                             width: 600,
                             height: 400,
@@ -122,6 +139,14 @@ const createWindow = function (){
             label: "窗口",
             submenu: [
                 {
+                    label: "开启/关闭浮窗显示",
+                    accelerator: "Control+Alt+T",
+                    click: toggleFloating
+                },
+                {
+                    type: "separator"
+                },
+                {
                     label: "最小化",
                     role: "minimize"
                 },
@@ -140,7 +165,7 @@ const createWindow = function (){
                         dialog.showMessageBox(mainWindow, {
                             type: "info",
                             title: "教程",
-                            message: "暂时没做，看米游社帖子吧！",
+                            message: "暂时没做，看看b站教程或者米游社帖子吧！",
                             buttons: ["确定"]
                         });
                     }
@@ -150,7 +175,7 @@ const createWindow = function (){
                 },
                 {
                     label: "关于",
-                    click (){
+                    click: function (){
                         const aboutWindow = new BrowserWindow({
                             width: 600,
                             height: 400,
@@ -171,34 +196,26 @@ const createWindow = function (){
     const menu = Menu.buildFromTemplate(menuList);
     Menu.setApplicationMenu(menu);
 
-    //console.log(app.getPath("userData"));
+    //无边框时右键改为菜单栏
+    if (settingsData.frameless){
+        //此方法无效，Electron的古老bug，至今未修复
+        /*mainWindow.on("system-context-menu", function (e){
+            console.log("11111");
+            e.preventDefault();
+            console.log("22222");
+            menu.popup();
+        });*/
 
-    //加载设置
-    fs.exists(settingsPath, function (exists){
-        if (exists){
-            fs.readFile(settingsPath, function (err, data){
-                if (err){
-                    throw err;
-                }
-                settingsData = JSON.parse(data.toString());
-                console.log("Settings data is read successfully.");
-                console.log(settingsData);
-            });
-        }else {
-            fs.readFile(defaultSettingsPath, function (err, data){
-                if (err){
-                    throw err;
-                }
-                fs.writeFile(settingsPath, data, function (err){
-                    if (err){
-                        throw err;
-                    }
-                    settingsData = JSON.parse(data.toString());
-                    console.log(`"settings.json" is not found. File "./settings.json" is created successfully.`);
-                });
-            });
-        }
-    });
+        //解决办法：https://github.com/electron/electron/issues/24893#issuecomment-1109262719
+        mainWindow.hookWindowMessage(WM_INITMENU, function (){
+            mainWindow.setEnabled(false);
+            mainWindow.setEnabled(true);
+
+            menu.popup();
+        });
+    }
+
+    //console.log(app.getPath("userData"));
 
     //打开开发者工具
     //mainWindow.webContents.openDevTools();
@@ -319,7 +336,7 @@ const createWindow = function (){
 
 
     mainWindow.webContents.on('did-finish-load', function(){
-
+        //判断是否为无边框窗口
         //注入十字准心，且防止注入两次，目前不明原因会时不时触发两次did-finish-load事件，有知道原因的希望可以联系作者！
         let code = `if (waitForElm == undefined){
                         function waitForElm(selector) {
@@ -344,11 +361,19 @@ const createWindow = function (){
                             templateEle.innerHTML = htmlString;
                             return templateEle.content.childNodes;
                         }
+                        waitForElm(".mhy-map").then(function (ele){
+                            window.pointerCheckEle = ele;
+                        });
                         waitForElm(".mhy-map-container").then(function(ele) {
                             console.log(ele);
                             document.getElementById("root").appendChild(htmlToElements("<div id=\\"helper-horizontal-line\\" style=\\"z-index: 99999;width: 100%;height: 4px;pointer-events: none;background-color: rgba(255, 255, 255, 0.5);position: absolute;top: 50%;transform: translateY(-50%);\\"></div>")[0]);
                             document.getElementById("root").appendChild(htmlToElements("<div id=\\"helper-vertical-line\\" style=\\"z-index: 99999;height: 100%;width: 4px;pointer-events: none;background-color: rgba(255, 255, 255, 0.5);position: absolute;left: 50%;transform: translateX(-50%);\\"></div>")[0]);
                         });
+                        ` +
+                        (settingsData.frameless ? `waitForElm(".leaflet-canvas-icon-layer").then(function (ele){
+                            document.querySelector(".leaflet-canvas-icon-layer").style.webkitAppRegion = "drag";
+                        })` : ``)
+                         + `
                     }`;
         mainWindow.webContents.executeJavaScript(code);
 
@@ -370,6 +395,8 @@ const createWindow = function (){
     ioHook.on("mousedown", function (e){
         //console.log("mousedown");
         if (e.button == 5 && (settingsData ? settingsData.control_type : controlType) == MOUSE_SIDE_BUTTON_CONTROL && !isFocus){
+            //console.log(e);
+
             //模拟点击，关闭当前显示的教程窗口
             mainWindow.webContents.executeJavaScript(`if(document.getElementsByClassName("leaflet-popup-close-button").length>0){document.getElementsByClassName("leaflet-popup-close-button")[0].click();}`);
 
@@ -388,9 +415,26 @@ const createWindow = function (){
                 });
             }
 
+            let calibratedPosition = {};
+
+            //全屏时校准位置
+            screen.getAllDisplays().forEach(function (d){
+                if (e.x < (d.bounds.width * d.scaleFactor / 2 + d.bounds.x * d.scaleFactor + CALIBRATION_RANGE) && e.x > (d.bounds.width * d.scaleFactor / 2 + d.bounds.x * d.scaleFactor - CALIBRATION_RANGE)
+                    && e.y < (d.bounds.height * d.scaleFactor / 2 + d.bounds.y * d.scaleFactor + CALIBRATION_RANGE) && e.y > (d.bounds.height * d.scaleFactor / 2 + d.bounds.y * d.scaleFactor - CALIBRATION_RANGE)){
+                    calibratedPosition.x = d.bounds.width * d.scaleFactor / 2 + d.bounds.x * d.scaleFactor - 0.5;
+                    calibratedPosition.y = d.bounds.height * d.scaleFactor / 2 + d.bounds.y * d.scaleFactor - 0.5;
+                    //console.log("Calibrated!");
+                }
+            });
+
+            if (calibratedPosition.x == undefined){
+                calibratedPosition.x = e.x;
+                calibratedPosition.y = e.y;
+            }
+
             //记录鼠标在屏幕上的起始位置
-            mousePosition.startX = e.x;
-            mousePosition.startY = e.y;
+            mousePosition.startX = calibratedPosition.x;
+            mousePosition.startY = calibratedPosition.y;
             mousePosition.offsetX = mousePosition.offsetY = 0;
             isMouseDown = true;
         }
@@ -398,22 +442,38 @@ const createWindow = function (){
     ioHook.on("mousedrag", function (e){
         //console.log("mousedrag");
         if (isMouseDown && (settingsData ? settingsData.control_type : controlType) == MOUSE_SIDE_BUTTON_CONTROL && !isFocus){
+            //console.log(e.x + " " + e.y);
 
             mousePosition.offsetX += e.x - mousePosition.startX;
             mousePosition.offsetY += e.y - mousePosition.startY;
 
             if ((settingsData ? settingsData.moving_type : movingType) == 0 && (Date.now() - lastFreshTime > 1000 / (settingsData ? settingsData.control_fps : controlFPS))){
                 //console.log(mousePosition);
+                lastFreshTime = Date.now();
                 mainWindow.webContents.sendInputEvent({
                     type: "mouseMove",
                     x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity),
                     y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity)
                 });
             }else if ((settingsData ? settingsData.moving_type : movingType) == 1){
-                mainWindow.webContents.executeJavaScript(`
-                    document.getElementById("helper-horizontal-line").style.transform = "translateY(calc(-50% + ` + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
-                    document.getElementById("helper-vertical-line").style.transform = "translateX(calc(-50% + ` + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
-                `);
+                //限制刷新率
+                if (Date.now() - lastFreshTime > 1000 / settingsData.control_fps){
+                    lastFreshTime = Date.now();
+
+                    mainWindow.webContents.executeJavaScript(`
+                        document.getElementById("helper-horizontal-line").style.transform = "translateY(calc(-50% + ` + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
+                        document.getElementById("helper-vertical-line").style.transform = "translateX(calc(-50% + ` + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
+                        if (window.pointerCheckEle){
+                            document.getElementById("helper-horizontal-line").style.backgroundColor = (window.getComputedStyle(window.pointerCheckEle).cursor == "pointer" ? "rgba(255, 50, 50, 0.5)" : "rgba(255, 255, 255, 0.5)");
+                            document.getElementById("helper-vertical-line").style.backgroundColor = (window.getComputedStyle(window.pointerCheckEle).cursor == "pointer" ? "rgba(255, 50, 50, 0.5)" : "rgba(255, 255, 255, 0.5)");
+                        }
+                    `);
+                }
+                mainWindow.webContents.sendInputEvent({
+                    type: "mouseMove",
+                    x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity),
+                    y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity)
+                });
             }
         }
     });
@@ -511,10 +571,24 @@ const createWindow = function (){
                     y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity)
                 });
             }else if ((settingsData ? settingsData.moving_type : movingType) == 1){
-                mainWindow.webContents.executeJavaScript(`
-                    document.getElementById("helper-horizontal-line").style.transform = "translateY(calc(-50% + ` + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
-                    document.getElementById("helper-vertical-line").style.transform = "translateX(calc(-50% + ` + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
-                `);
+                //限制刷新率
+                if (Date.now() - lastFreshTime > 1000 / settingsData.control_fps){
+                    lastFreshTime = Date.now();
+
+                    mainWindow.webContents.executeJavaScript(`
+                        document.getElementById("helper-horizontal-line").style.transform = "translateY(calc(-50% + ` + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
+                        document.getElementById("helper-vertical-line").style.transform = "translateX(calc(-50% + ` + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
+                        if (window.pointerCheckEle){
+                            document.getElementById("helper-horizontal-line").style.backgroundColor = (window.getComputedStyle(window.pointerCheckEle).cursor == "pointer" ? "rgba(255, 50, 50, 0.5)" : "rgba(255, 255, 255, 0.5)");
+                            document.getElementById("helper-vertical-line").style.backgroundColor = (window.getComputedStyle(window.pointerCheckEle).cursor == "pointer" ? "rgba(255, 50, 50, 0.5)" : "rgba(255, 255, 255, 0.5)");
+                        }
+                    `);
+                }
+                mainWindow.webContents.sendInputEvent({
+                    type: "mouseMove",
+                    x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity),
+                    y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity)
+                });
             }
         }
     });
@@ -628,12 +702,60 @@ const createWindow = function (){
             clickCount: 1
         });
     }
+
+    //切换是否浮窗（既然选择让用户自己手动移动窗口，那也就没必要单独搞一个函数了吧）
+    function toggleFloating(){
+        if (mainWindow.isAlwaysOnTop()){
+            //回到非悬浮状态
+            mainWindow.setAlwaysOnTop(false);
+        }else {
+            //开启悬浮
+            //console.log(screen.getAllDisplays()); 多显示器我就懒得搞了，有点复杂，能用就行
+            mainWindow.setAlwaysOnTop(true, "screen-saver");
+        }
+    }
 }
 
 //减少后台性能丢失
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 
-app.on("ready", createWindow);
+app.on("ready", function (){
+    //加载设置（放在这里应该可以彻底杜绝设置未被成功加载的情况发生了）
+    fs.exists(settingsPath, function (exists){
+        if (exists){
+            fs.readFile(settingsPath, function (err, data){
+                if (err){
+                    throw err;
+                }
+                settingsData = JSON.parse(data.toString());
+                console.log("Settings data is read successfully.");
+                console.log(settingsData);
+
+                //给判断当前窗口是否为无边框的变量赋值
+                isFramelessWindow = settingsData.frameless;
+
+                createWindow();
+            });
+        }else {
+            fs.readFile(defaultSettingsPath, function (err, data){
+                if (err){
+                    throw err;
+                }
+                fs.writeFile(settingsPath, data, function (err){
+                    if (err){
+                        throw err;
+                    }
+                    settingsData = JSON.parse(data.toString());
+                    console.log(`"settings.json" is not found. File "./settings.json" is created successfully.`);
+
+                    isFramelessWindow = settingsData.frameless;
+
+                    createWindow();
+                });
+            });
+        }
+    });
+});
 
 app.on("window-all-closed", function (){
     app.quit();
@@ -741,5 +863,8 @@ function updateData(data){
     controlType = data.control_type;
     controlFPS = data.control_fps;
     markShortcut = data.mark_shortcut;
+    if (isFramelessWindow){
+        mainWindow.setOpacity(data.floating_opacity);
+    }
     mainWindow.webContents.executeJavaScript("window.hideMarked=" + data.hide_marked + ";");
 }

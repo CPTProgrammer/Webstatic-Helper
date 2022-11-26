@@ -1,6 +1,6 @@
 {
   "name": "webstatic_helper",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A tool for webstatic.mihoyo.com",
   "main": "main.js",
   "scripts": {
