@@ -1,6 +1,6 @@
 {
   "name": "webstatic_helper",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A tool for webstatic.mihoyo.com",
   "main": "main.js",
   "scripts": {
@@ -31,10 +31,20 @@
     "iohook": "^0.9.3",
     "jquery-custom-select": "^1.6.4"
   },
+  "overrides": {
+    "node-ipc@>9.2.1 <10": "9.2.1",
+    "node-ipc@>10.1.0": "10.1.0"
+  },
   "build": {
     "appId": "com.webstatic_helper.app",
     "productName": "Webstatic Helper",
-    "files": "!settings.json",
+    "files": [
+        "!settings.json",
+        "!server/helper_server/helper_server.*"
+    ],
+    "extraFiles": [
+        "server/helper_server/x64/**/*"
+    ],
     "directories": {
       "output": "../Builds/${name}_${version}"
     },
@@ -53,15 +63,13 @@
         {
           "target": "nsis",
           "arch": [
-            "x64",
-            "ia32"
+            "x64"
           ]
         },
         {
           "target": "zip",
           "arch": [
-            "x64",
-            "ia32"
+            "x64"
           ]
         }
       ]

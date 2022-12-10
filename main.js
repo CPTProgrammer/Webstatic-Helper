@@ -11,6 +11,10 @@ const path = require("path");
 const url = require("url");
 const https = require('https');
 //const http = require('http');
+//const ffi = require("ffi-napi");
+//const ref = require("ref-napi");
+//导入子进程
+const {spawn} = require("child_process");
 
 const WM_INITMENU = 0x0116;//右键事件代码
 
@@ -42,13 +46,98 @@ var markShortcut = 41;
 
 var isFramelessWindow = false;
 
-//总感觉这样写不是很安全
+//总感觉这样写有点奇怪
 let mainWindow;
+
+//获取鼠标位置的Interval
+var mouseInterval;
+//子进程
+var helperServer;
 
 //设置文件存储到%AppData%
 //const settingsPath = path.join(__dirname, "/settings.json");
 const settingsPath = path.join(app.getPath("userData"), "/settings.json");
 const defaultSettingsPath = path.join(__dirname, "/default-settings.json");
+
+function start(){
+    //helperServer = spawn(path.join(__dirname, "/server/helper_server/x64/Release/helper_server.exe"), [], {
+    helperServer = spawn("./server/helper_server/x64/Release/helper_server.exe", [], {
+        windowsHide: false
+    });
+    //helperServer = spawn(".\\server\\helper_server\\x64\\Release\\helper_server.exe");
+    console.log("start");
+    helperServer.stdout.on("data", function (data){
+        //console.log(data.toString().split("\n")[0]);
+
+        if (data.toString()[0] == "!"){
+            return;
+        }
+
+        if (data.toString()[0] == "r"){
+            //程序已准备好 ==READY
+            createWindow();
+        }else if (data.toString()[0] == "s"){
+            //坐标已清零 ==START
+            clearInterval(mouseInterval);
+
+            mouseInterval = setInterval(function (){
+                //访问子进程刷新鼠标
+                let serverInput = Buffer.from("1\n");
+                helperServer.stdin.write(serverInput);
+            }, 1000 / settingsData.control_fps);
+        }else {
+            if ((settingsData.control_type == MOUSE_SIDE_BUTTON_CONTROL && !isMouseDown) || (settingsData.control_type == ALT_CONTROL && !isKeyDown)){
+                return;
+            }
+
+            let mouseData = data.toString().split(" ");
+
+            mousePosition.offsetX = parseInt(mouseData[0]);
+            mousePosition.offsetY = parseInt(mouseData[1]);
+
+            mapMouseMove();
+        }
+    });
+    helperServer.on("error", function (err){
+        console.log("Error: " + err);
+        dialog.showMessageBoxSync({
+            type: "error",
+            title: "Error in Main process",
+            message: err.toString()
+        });
+    });
+    helperServer.on("close", function (code){
+        console.log("Helper server exited with code " + code);
+    });
+}
+
+function mapMouseMove(){
+    if ((settingsData ? settingsData.moving_type : movingType) == 0){
+        //console.log(mousePosition);
+        mainWindow.webContents.sendInputEvent({
+            type: "mouseMove",
+            x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity),
+            y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity)
+        });
+    }else if ((settingsData ? settingsData.moving_type : movingType) == 1){
+        //console.log(e);
+
+        mainWindow.webContents.executeJavaScript(`
+            document.getElementById("helper-horizontal-line").style.transform = "translateY(calc(-50% + ` + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
+            document.getElementById("helper-vertical-line").style.transform = "translateX(calc(-50% + ` + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity) + `px))";
+            if (window.pointerCheckEle){
+                document.getElementById("helper-horizontal-line").style.backgroundColor = (window.getComputedStyle(window.pointerCheckEle).cursor == "pointer" ? "rgba(255, 50, 50, 0.5)" : "rgba(255, 255, 255, 0.5)");
+                document.getElementById("helper-vertical-line").style.backgroundColor = (window.getComputedStyle(window.pointerCheckEle).cursor == "pointer" ? "rgba(255, 50, 50, 0.5)" : "rgba(255, 255, 255, 0.5)");
+            }
+        `);
+
+        mainWindow.webContents.sendInputEvent({
+            type: "mouseMove",
+            x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity),
+            y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY * (settingsData ? settingsData.sensitivity : sensitivity)
+        });
+    }
+}
 
 const createWindow = function (){
     mainWindow = new BrowserWindow({
@@ -57,8 +146,9 @@ const createWindow = function (){
         frame: (settingsData.frameless == 1 ? false : true),
         opacity: (settingsData.frameless == 1 ? settingsData.floating_opacity : 1),
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, "preload.js")
         }
     });
 
@@ -364,6 +454,10 @@ const createWindow = function (){
                         waitForElm(".mhy-map").then(function (ele){
                             window.pointerCheckEle = ele;
                         });
+                        waitForElm(".bbs-qr").then(function (ele){
+                            console.log(ele);
+                            ele.style.display = "none";
+                        });
                         waitForElm(".mhy-map-container").then(function(ele) {
                             console.log(ele);
                             document.getElementById("root").appendChild(htmlToElements("<div id=\\"helper-horizontal-line\\" style=\\"z-index: 99999;width: 100%;height: 4px;pointer-events: none;background-color: rgba(255, 255, 255, 0.5);position: absolute;top: 50%;transform: translateY(-50%);\\"></div>")[0]);
@@ -415,9 +509,9 @@ const createWindow = function (){
                 });
             }
 
-            let calibratedPosition = {};
+            /*let calibratedPosition = {};
 
-            //全屏时校准位置
+            //全屏时校准位置（现已无需校准位置）
             screen.getAllDisplays().forEach(function (d){
                 if (e.x < (d.bounds.width * d.scaleFactor / 2 + d.bounds.x * d.scaleFactor + CALIBRATION_RANGE) && e.x > (d.bounds.width * d.scaleFactor / 2 + d.bounds.x * d.scaleFactor - CALIBRATION_RANGE)
                     && e.y < (d.bounds.height * d.scaleFactor / 2 + d.bounds.y * d.scaleFactor + CALIBRATION_RANGE) && e.y > (d.bounds.height * d.scaleFactor / 2 + d.bounds.y * d.scaleFactor - CALIBRATION_RANGE)){
@@ -430,17 +524,21 @@ const createWindow = function (){
             if (calibratedPosition.x == undefined){
                 calibratedPosition.x = e.x;
                 calibratedPosition.y = e.y;
-            }
+            }*/
 
             //记录鼠标在屏幕上的起始位置
-            mousePosition.startX = calibratedPosition.x;
-            mousePosition.startY = calibratedPosition.y;
+            //mousePosition.startX = calibratedPosition.x;
+            //mousePosition.startY = calibratedPosition.y;
+            mousePosition.startX = mousePosition.startY = 0;
             mousePosition.offsetX = mousePosition.offsetY = 0;
             isMouseDown = true;
+
+            helperServer.stdin.write(Buffer.from("0\n"));
+
         }
     });
+    /*//弃用，性能低下，无法获取鼠标硬件层面的位移
     ioHook.on("mousedrag", function (e){
-        //console.log("mousedrag");
         if (isMouseDown && (settingsData ? settingsData.control_type : controlType) == MOUSE_SIDE_BUTTON_CONTROL && !isFocus){
             //console.log(e.x + " " + e.y);
 
@@ -458,6 +556,7 @@ const createWindow = function (){
             }else if ((settingsData ? settingsData.moving_type : movingType) == 1){
                 //限制刷新率
                 if (Date.now() - lastFreshTime > 1000 / settingsData.control_fps){
+                    //console.log(e);
                     lastFreshTime = Date.now();
 
                     mainWindow.webContents.executeJavaScript(`
@@ -476,10 +575,13 @@ const createWindow = function (){
                 });
             }
         }
-    });
+    });*/
     ioHook.on("mouseup", function (e){
         //console.log("mouseup");
         if (e.button == 5 && (settingsData ? settingsData.control_type : controlType) == MOUSE_SIDE_BUTTON_CONTROL && !isFocus){
+            //console.log("1");
+            isMouseDown = false;
+            clearInterval(mouseInterval);
             if ((settingsData ? settingsData.moving_type : movingType) == 0){
                 //console.log(mainWindow.getContentSize());
                 mainWindow.webContents.sendInputEvent({
@@ -526,7 +628,6 @@ const createWindow = function (){
                     document.getElementById("helper-vertical-line").style.transform = "translateX(-50%)";
                 `);
             }
-            isMouseDown = false;
         }
     });
 
@@ -546,12 +647,14 @@ const createWindow = function (){
                 });
             }
 
-            mousePosition.startX = mousePosition.x;
-            mousePosition.startY = mousePosition.y;
+            mousePosition.startX = mousePosition.startY = 0;
             mousePosition.offsetX = mousePosition.offsetY = 0;
             isKeyDown = true;
+
+            helperServer.stdin.write(Buffer.from("0\n"));
         }
     });
+    /*//效率低下
     ioHook.on("mousemove", function (e){
         //添加实时位置获取，否则keydown事件无法获取鼠标位置
         mousePosition.x = e.x;
@@ -564,7 +667,6 @@ const createWindow = function (){
             if ((settingsData ? settingsData.moving_type : movingType) == 0 && (Date.now() - lastFreshTime > 1000 / (settingsData ? settingsData.control_fps : controlFPS))){
                 //console.log("mousemove");
                 lastFreshTime = Date.now();
-                //console.log(mousePosition);
                 mainWindow.webContents.sendInputEvent({
                     type: "mouseMove",
                     x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX * (settingsData ? settingsData.sensitivity : sensitivity),
@@ -591,13 +693,15 @@ const createWindow = function (){
                 });
             }
         }
-    });
+    });*/
     ioHook.on("keyup", function (e){
         //console.log(e.keycode);
         if (e.keycode == (settingsData ? settingsData.mark_shortcut : markShortcut)){
             mainWindow.webContents.executeJavaScript(`if(document.getElementsByClassName("map-popup__switch").length>0){document.querySelector(".map-popup__switch").click();}`);
         }
         if (e.keycode == 56 && (settingsData ? settingsData.control_type : controlType) == ALT_CONTROL && !isFocus){
+            isKeyDown = false;
+            clearInterval(mouseInterval);
             if ((settingsData ? settingsData.moving_type : movingType) == 0){
                 mainWindow.webContents.sendInputEvent({
                     type: "mouseUp",
@@ -643,7 +747,6 @@ const createWindow = function (){
                     document.getElementById("helper-vertical-line").style.transform = "translateX(-50%)";
                 `);
             }
-            isKeyDown = false;
         }
 
     });
@@ -734,7 +837,8 @@ app.on("ready", function (){
                 //给判断当前窗口是否为无边框的变量赋值
                 isFramelessWindow = settingsData.frameless;
 
-                createWindow();
+                //createWindow();
+                start();
             });
         }else {
             fs.readFile(defaultSettingsPath, function (err, data){
@@ -750,7 +854,8 @@ app.on("ready", function (){
 
                     isFramelessWindow = settingsData.frameless;
 
-                    createWindow();
+                    //createWindow();
+                    start();
                 });
             });
         }

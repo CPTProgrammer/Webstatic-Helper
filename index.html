@@ -179,10 +179,10 @@
             <div class="form-lists">
                 <div class="form-list">
                     控制方式：<select name="control_type">
-                        <option value="0">鼠标侧边按钮控制（按钮5）（推荐使用）</option>
-                        <option value="1">Alt键控制（似乎有bug，原因暂不明）</option>
+                        <option value="0">鼠标侧边按钮控制（按钮5）</option>
+                        <option value="1">Alt键控制</option>
                     </select>
-                    <p>使用鼠标侧键控制时建议调低鼠标回报率至125Hz，否则可能会出现准心乱飘的情况</p>
+                    <p>暂不支持自定义按键，未来有计划加入</p>
                 </div>
                 <div class="form-list">
                     显示方式：<select name="moving_type">
@@ -221,7 +221,7 @@
                     <p>Ctrl+R刷新页面或下次启动时生效</p>
                 </div>
                 <div class="form-list">
-                    地图移动刷新率：<input type="range" name="control_fps" value="60" min="5" max="240" data-zoom="1"><span></span>
+                    控制刷新率：<input type="range" name="control_fps" value="60" min="5" max="240" data-zoom="1"><span></span>
                     <p>建议不要太高，60左右即可，否则可能会更卡顿</p>
                 </div>
             </div>

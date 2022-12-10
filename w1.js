@@ -1,7 +1,8 @@
 /*! Copyright © 2011 - 2022 miHoYo. All Rights Reserved */
 //window.iconZoom=1;
-const {ipcRenderer} = require("electron");
-let _helper_data = ipcRenderer.sendSync("GET_INDIVIDUAL_SETTINGS");
+/*const {ipcRenderer} = require("electron");//及其不安全的写法
+let _helper_data = ipcRenderer.sendSync("GET_INDIVIDUAL_SETTINGS");*/
+let _helper_data = window.electronAPI.getIndividualSettings();
 [window.iconZoom, window.hideMarked] = [_helper_data.icon_scale, _helper_data.hide_marked];
 (window.webpackJsonp = window.webpackJsonp || []).push([[1], Array(1355).concat([function(t, e, n) {
     "use strict";
