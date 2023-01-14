@@ -16,6 +16,32 @@ const https = require('https');
 //导入子进程
 const {spawn} = require("child_process");
 
+const consoleStyles = {
+    'bold'          : '\x1B[1m%s\x1B[22m',
+    'italic'        : '\x1B[3m%s\x1B[23m',
+    'underline'     : '\x1B[4m%s\x1B[24m',
+    'inverse'       : '\x1B[7m%s\x1B[27m',
+    'strikethrough' : '\x1B[9m%s\x1B[29m',
+    'white'         : '\x1B[37m%s\x1B[39m',
+    'grey'          : '\x1B[90m%s\x1B[39m',
+    'black'         : '\x1B[30m%s\x1B[39m',
+    'blue'          : '\x1B[34m%s\x1B[39m',
+    'cyan'          : '\x1B[36m%s\x1B[39m',
+    'green'         : '\x1B[32m%s\x1B[39m',
+    'magenta'       : '\x1B[35m%s\x1B[39m',
+    'red'           : '\x1B[31m%s\x1B[39m',
+    'yellow'        : '\x1B[33m%s\x1B[39m',
+    'whiteBG'       : '\x1B[47m%s\x1B[49m',
+    'greyBG'        : '\x1B[49;5;8m%s\x1B[49m',
+    'blackBG'       : '\x1B[40m%s\x1B[49m',
+    'blueBG'        : '\x1B[44m%s\x1B[49m',
+    'cyanBG'        : '\x1B[46m%s\x1B[49m',
+    'greenBG'       : '\x1B[42m%s\x1B[49m',
+    'magentaBG'     : '\x1B[45m%s\x1B[49m',
+    'redBG'         : '\x1B[41m%s\x1B[49m',
+    'yellowBG'      : '\x1B[43m%s\x1B[49m'
+}
+
 const WM_INITMENU = 0x0116;//右键事件代码
 
 const MOUSE_SIDE_BUTTON_CONTROL = 0;
@@ -58,56 +84,101 @@ var helperServer;
 //const settingsPath = path.join(__dirname, "/settings.json");
 const settingsPath = path.join(app.getPath("userData"), "/settings.json");
 const defaultSettingsPath = path.join(__dirname, "/default-settings.json");
+//const w1CachePath = path.join(app.getPath("userData", "/w1_cache/"));
 
-function start(){
-    //helperServer = spawn(path.join(__dirname, "/server/helper_server/x64/Release/helper_server.exe"), [], {
-    helperServer = spawn("./server/helper_server/x64/Release/helper_server.exe", [], {
-        windowsHide: false
+function readSettings(){
+    return new Promise(function (resolve, reject) {
+        fs.exists(settingsPath, function (exists){
+            if (exists){
+                fs.readFile(settingsPath, function (err, data){
+                    if (err){
+                        throw err;
+                    }
+                    settingsData = JSON.parse(data.toString());
+                    console.log(consoleStyles.green, "Settings data is read successfully.");
+                    console.log(settingsData);
+
+                    //给判断当前窗口是否为无边框的变量赋值
+                    isFramelessWindow = settingsData.frameless;
+
+                    //createWindow();
+                    resolve();
+                });
+            }else {
+                fs.readFile(defaultSettingsPath, function (err, data){
+                    if (err){
+                        throw err;
+                    }
+                    fs.writeFile(settingsPath, data, function (err){
+                        if (err){
+                            throw err;
+                        }
+                        settingsData = JSON.parse(data.toString());
+                        console.log(`"settings.json" is not found. File "./settings.json" is created successfully.`);
+
+                        isFramelessWindow = settingsData.frameless;
+
+                        //createWindow();
+                        resolve();
+                    });
+                });
+            }
+        });
     });
-    //helperServer = spawn(".\\server\\helper_server\\x64\\Release\\helper_server.exe");
-    console.log("start");
-    helperServer.stdout.on("data", function (data){
-        //console.log(data.toString().split("\n")[0]);
+}
 
-        if (data.toString()[0] == "!"){
-            return;
-        }
+function startServer(){
+    return new Promise(function (resolve, reject){
+        //helperServer = spawn(path.join(__dirname, "/server/helper_server/x64/Release/helper_server.exe"), [], {
+        helperServer = spawn("./server/helper_server/x64/Release/helper_server.exe", [], {
+            windowsHide: false
+        });
+        //helperServer = spawn(".\\server\\helper_server\\x64\\Release\\helper_server.exe");
+        console.log("start");
+        helperServer.stdout.on("data", function (data){
+            //console.log(data.toString().split("\n")[0]);
 
-        if (data.toString()[0] == "r"){
-            //程序已准备好 ==READY
-            createWindow();
-        }else if (data.toString()[0] == "s"){
-            //坐标已清零 ==START
-            clearInterval(mouseInterval);
-
-            mouseInterval = setInterval(function (){
-                //访问子进程刷新鼠标
-                let serverInput = Buffer.from("1\n");
-                helperServer.stdin.write(serverInput);
-            }, 1000 / settingsData.control_fps);
-        }else {
-            if ((settingsData.control_type == MOUSE_SIDE_BUTTON_CONTROL && !isMouseDown) || (settingsData.control_type == ALT_CONTROL && !isKeyDown)){
+            if (data.toString()[0] == "!"){
                 return;
             }
 
-            let mouseData = data.toString().split(" ");
+            if (data.toString()[0] == "r"){
+                //程序已准备好 ==READY
+                //createWindow(); // 使用更优雅的Promise
+                resolve();
+            }else if (data.toString()[0] == "s"){
+                //坐标已清零 ==START
+                clearInterval(mouseInterval);
 
-            mousePosition.offsetX = parseInt(mouseData[0]);
-            mousePosition.offsetY = parseInt(mouseData[1]);
+                mouseInterval = setInterval(function (){
+                    //访问子进程刷新鼠标
+                    let serverInput = Buffer.from("1\n");
+                    helperServer.stdin.write(serverInput);
+                }, 1000 / settingsData.control_fps);
+            }else {
+                if ((settingsData.control_type == MOUSE_SIDE_BUTTON_CONTROL && !isMouseDown) || (settingsData.control_type == ALT_CONTROL && !isKeyDown)){
+                    return;
+                }
 
-            mapMouseMove();
-        }
-    });
-    helperServer.on("error", function (err){
-        console.log("Error: " + err);
-        dialog.showMessageBoxSync({
-            type: "error",
-            title: "Error in Main process",
-            message: err.toString()
+                let mouseData = data.toString().split(" ");
+
+                mousePosition.offsetX = parseInt(mouseData[0]);
+                mousePosition.offsetY = parseInt(mouseData[1]);
+
+                mapMouseMove();
+            }
         });
-    });
-    helperServer.on("close", function (code){
-        console.log("Helper server exited with code " + code);
+        helperServer.on("error", function (err){
+            console.log("Error: " + err);
+            dialog.showMessageBoxSync({
+                type: "error",
+                title: "Error in helper_server process",
+                message: err.toString()
+            });
+        });
+        helperServer.on("close", function (code){
+            console.log(consoleStyles.red, "Helper server exited with code " + code);
+        });
     });
 }
 
@@ -316,10 +387,11 @@ const createWindow = function (){
     mainWindow.loadURL("https://webstatic.mihoyo.com/ys/app/interactive-map/index.html");
 
     //拦截并修改渲染Canvas的js文件
-    //已更改 819~820行 1261~1262 159~160 2
+    //已更改 819~820行 1261~1262 159~160 868 874 2
     //815行，为绘制边框！！
     //908行，控制鼠标点击区域！
     // /http(s)?:\/\/webstatic.mihoyo.com\/ys\/app\/interactive-map\/1_.{20}\.js/
+    //2022/12/27 这个js文件更新了，本地不更新是用不了大地图的。。但是我竟然，没有把修改前的源文件保存好
     //已添加到dom-ready事件内，刷新后也可以拦截js，懒得写成函数了，也就是复制粘贴的事
     protocol.interceptBufferProtocol("https", function (request, result){
         //console.log(request);
@@ -327,10 +399,36 @@ const createWindow = function (){
         if (/http(s)?:\/\/webstatic.mihoyo.com\/ys\/app\/interactive-map\/1_.{20}\.js/.test(request.url)){
             console.warn("Check!");
             try {
-                var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
-                console.log("File w1.js read successfully.");
-                console.log(typeof(localJS));
-                result(localJS);
+                let opt = {
+                    timeout: 2000
+                };
+                let req = https.get("https://cdn.jsdelivr.net/gh/CPTProgrammer/Webstatic-Helper@main/w1.js", opt, response => {
+                    let buf = Buffer.from("");
+                    response.on("data", function (body){
+                        buf = Buffer.concat([buf, body]);
+                        //console.log(consoleStyles.blue, "111");
+                    });
+                    response.on("end", function (){
+                        console.log(consoleStyles.green, "Get latest w1.js from GitHub successfully.");
+                        result(buf);
+                    });
+                }).end();
+                req.on("error", function (err){
+                    console.log(consoleStyles.red, err);
+
+                    var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                    console.log(consoleStyles.green, "File w1.js read successfully.");
+                    console.log(typeof(localJS));
+                    result(localJS);
+                });
+                req.on("timeout", function (){
+                    var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                    console.log(consoleStyles.green, "File w1.js read successfully.");
+                    console.log(typeof(localJS));
+                    result(localJS);
+
+                    req.destroy();
+                });
             } catch(err){
                 console.error(err);
             }
@@ -373,7 +471,7 @@ const createWindow = function (){
         console.log("ready!");
         //防止创建两次拦截事件，经测试经常会发生触发两次dom-ready事件的情况，有知道原因的希望可以联系作者！
         if (protocol.isProtocolIntercepted("https")){
-            console.log("Protocol is already intercepted!");
+            console.log(consoleStyles.red, "Protocol is already intercepted!");
             return;
         }
         protocol.interceptBufferProtocol("https", function (request, result){
@@ -382,10 +480,35 @@ const createWindow = function (){
             if (/http(s)?:\/\/webstatic.mihoyo.com\/ys\/app\/interactive-map\/1_.{20}\.js/.test(request.url)){
                 console.warn("Check!");
                 try {
-                    var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
-                    console.log("File w1.js read successfully.");
-                    console.log(typeof(localJS));
-                    result(localJS);
+                    let opt = {
+                        timeout: 1000
+                    };
+                    let req = https.get("https://cdn.jsdelivr.net/gh/CPTProgrammer/Webstatic-Helper@main/w1.js", opt, response => {
+                        let buf = Buffer.from("");
+                        response.on("data", function (body){
+                            buf = Buffer.concat([buf, body]);
+                        });
+                        response.on("end", function (){
+                            console.log("Get latest w1.js from GitHub successfully.");
+                            result(buf);
+                        });
+                    }).end();
+                    req.on("error", function (err){
+                        console.error(err);
+
+                        var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                        console.log("File w1.js read successfully.");
+                        console.log(typeof(localJS));
+                        result(localJS);
+                    });
+                    req.on("timeout", function (){
+                        var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                        console.log("File w1.js read successfully.");
+                        console.log(typeof(localJS));
+                        result(localJS);
+
+                        req.destroy();
+                    });
                 } catch(err){
                     console.error(err);
                 }
@@ -770,8 +893,8 @@ const createWindow = function (){
                     type: "mouseWheel",
                     deltaX: 0,
                     deltaY: -e.rotation,
-                    x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX,
-                    y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY,
+                    x: mainWindow.getContentSize()[0] / 2 + mousePosition.offsetX * settingsData.sensitivity,
+                    y: mainWindow.getContentSize()[1] / 2 + mousePosition.offsetY * settingsData.sensitivity,
                     canScroll: true
                 });
             }
@@ -823,43 +946,11 @@ const createWindow = function (){
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 
 app.on("ready", function (){
-    //加载设置（放在这里应该可以彻底杜绝设置未被成功加载的情况发生了）
-    fs.exists(settingsPath, function (exists){
-        if (exists){
-            fs.readFile(settingsPath, function (err, data){
-                if (err){
-                    throw err;
-                }
-                settingsData = JSON.parse(data.toString());
-                console.log("Settings data is read successfully.");
-                console.log(settingsData);
-
-                //给判断当前窗口是否为无边框的变量赋值
-                isFramelessWindow = settingsData.frameless;
-
-                //createWindow();
-                start();
-            });
-        }else {
-            fs.readFile(defaultSettingsPath, function (err, data){
-                if (err){
-                    throw err;
-                }
-                fs.writeFile(settingsPath, data, function (err){
-                    if (err){
-                        throw err;
-                    }
-                    settingsData = JSON.parse(data.toString());
-                    console.log(`"settings.json" is not found. File "./settings.json" is created successfully.`);
-
-                    isFramelessWindow = settingsData.frameless;
-
-                    //createWindow();
-                    start();
-                });
-            });
-        }
-    });
+    //加载设置（放在这里应该可以彻底杜绝设置未被成功加载的情况发生了） 改：使用Promise
+    readSettings()
+    .then()
+    .then(startServer)
+    .then(createWindow);
 });
 
 app.on("window-all-closed", function (){

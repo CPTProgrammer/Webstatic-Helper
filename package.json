@@ -40,6 +40,8 @@
     "productName": "Webstatic Helper",
     "files": [
         "!settings.json",
+        "!w1_latest.js",
+        "!w1_source.js",
         "!server/helper_server/helper_server.*"
     ],
     "extraFiles": [
