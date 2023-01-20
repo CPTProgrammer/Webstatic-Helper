@@ -61,7 +61,7 @@ var sensitivity = 1;
 var mousePosition = {};
 var isMouseDown = false;//鼠标是否按下
 var isKeyDown = false;
-var isFocus = true;
+var isFocus = false;
 
 var controlFPS = 60;
 var lastFreshTime = 0;
@@ -398,39 +398,45 @@ const createWindow = function (){
         //console.log(typeof(request.url))
         if (/http(s)?:\/\/webstatic.mihoyo.com\/ys\/app\/interactive-map\/1_.{20}\.js/.test(request.url)){
             console.warn("Check!");
-            try {
-                let opt = {
-                    timeout: 2000
-                };
-                let req = https.get("https://cdn.jsdelivr.net/gh/CPTProgrammer/Webstatic-Helper@main/w1.js", opt, response => {
-                    let buf = Buffer.from("");
-                    response.on("data", function (body){
-                        buf = Buffer.concat([buf, body]);
-                        //console.log(consoleStyles.blue, "111");
-                    });
-                    response.on("end", function (){
-                        console.log(consoleStyles.green, "Get latest w1.js from GitHub successfully.");
-                        result(buf);
-                    });
-                }).end();
-                req.on("error", function (err){
-                    console.log(consoleStyles.red, err);
+            if (settingsData.get_latest_js == 1){
+                try {
+                    let opt = {
+                        timeout: 2000
+                    };
+                    let req = https.get("https://cdn.jsdelivr.net/gh/CPTProgrammer/Webstatic-Helper@main/w1.min.js", opt, response => {
+                        let buf = Buffer.from("");
+                        response.on("data", function (body){
+                            buf = Buffer.concat([buf, body]);
+                            //console.log(consoleStyles.blue, "111");
+                        });
+                        response.on("end", function (){
+                            console.log(consoleStyles.green, "Get latest w1.js from GitHub successfully.");
+                            result(buf);
+                        });
+                    }).end();
+                    req.on("error", function (err){
+                        console.log(consoleStyles.red, err);
 
-                    var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
-                    console.log(consoleStyles.green, "File w1.js read successfully.");
-                    console.log(typeof(localJS));
-                    result(localJS);
-                });
-                req.on("timeout", function (){
-                    var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
-                    console.log(consoleStyles.green, "File w1.js read successfully.");
-                    console.log(typeof(localJS));
-                    result(localJS);
+                        var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                        console.log(consoleStyles.green, "File w1.js read successfully.");
+                        console.log(typeof(localJS));
+                        result(localJS);
+                    });
+                    req.on("timeout", function (){
+                        var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                        console.log(consoleStyles.green, "File w1.js read successfully.");
+                        console.log(typeof(localJS));
+                        result(localJS);
 
-                    req.destroy();
-                });
-            } catch(err){
-                console.error(err);
+                        req.destroy();
+                    });
+                } catch(err){
+                    console.error(err);
+                }
+            } else {
+                var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                console.log(consoleStyles.green, "File w1.js read successfully.");
+                result(localJS);
             }
             //result({url: "w1.js"});
             protocol.uninterceptProtocol("https");
@@ -479,38 +485,44 @@ const createWindow = function (){
             //console.log(typeof(request.url))
             if (/http(s)?:\/\/webstatic.mihoyo.com\/ys\/app\/interactive-map\/1_.{20}\.js/.test(request.url)){
                 console.warn("Check!");
-                try {
-                    let opt = {
-                        timeout: 1000
-                    };
-                    let req = https.get("https://cdn.jsdelivr.net/gh/CPTProgrammer/Webstatic-Helper@main/w1.js", opt, response => {
-                        let buf = Buffer.from("");
-                        response.on("data", function (body){
-                            buf = Buffer.concat([buf, body]);
+                if (settingsData.get_latest_js == 1){
+                    try {
+                        let opt = {
+                            timeout: 1000
+                        };
+                        let req = https.get("https://cdn.jsdelivr.net/gh/CPTProgrammer/Webstatic-Helper@main/w1.min.js", opt, response => {
+                            let buf = Buffer.from("");
+                            response.on("data", function (body){
+                                buf = Buffer.concat([buf, body]);
+                            });
+                            response.on("end", function (){
+                                console.log(consoleStyles.green, "Get latest w1.js from GitHub successfully.");
+                                result(buf);
+                            });
+                        }).end();
+                        req.on("error", function (err){
+                            console.error(err);
+
+                            var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                            console.log(consoleStyles.green, "File w1.js read successfully.");
+                            console.log(typeof(localJS));
+                            result(localJS);
                         });
-                        response.on("end", function (){
-                            console.log("Get latest w1.js from GitHub successfully.");
-                            result(buf);
+                        req.on("timeout", function (){
+                            var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                            console.log(consoleStyles.green, "File w1.js read successfully.");
+                            console.log(typeof(localJS));
+                            result(localJS);
+
+                            req.destroy();
                         });
-                    }).end();
-                    req.on("error", function (err){
+                    } catch(err){
                         console.error(err);
-
-                        var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
-                        console.log("File w1.js read successfully.");
-                        console.log(typeof(localJS));
-                        result(localJS);
-                    });
-                    req.on("timeout", function (){
-                        var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
-                        console.log("File w1.js read successfully.");
-                        console.log(typeof(localJS));
-                        result(localJS);
-
-                        req.destroy();
-                    });
-                } catch(err){
-                    console.error(err);
+                    }
+                } else {
+                    var localJS = fs.readFileSync(path.join(__dirname, "/w1.js"));
+                    console.log(consoleStyles.green, "File w1.js read successfully.");
+                    result(localJS);
                 }
                 //result({url: "w1.js"});
                 protocol.uninterceptProtocol("https");
@@ -599,14 +611,14 @@ const createWindow = function (){
     });
 
     //监听窗口失去焦点
-    mainWindow.on("blur", function (){
+    /*mainWindow.on("blur", function (){
         //console.log("blur");
         isFocus = false;
     });
     mainWindow.on("focus", function (){
         //console.log("focus");
         isFocus = true;
-    });
+    });*/
 
     //监听使用鼠标侧键控制时的鼠标事件
     ioHook.on("mousedown", function (e){
